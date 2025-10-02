@@ -73,11 +73,10 @@ const filters = ref({
   limit: 500
 })
 
-const formatDate = (d: Date): string => d.toISOString().split('T')[0]
 
 const fetchData = async () => {
   const today = new Date()
-  const dateStr = formatDate(today)
+  const dateStr = new Date().toISOString().split('T')[0]!
 
   try {
     const response = await stocksService.getStocks(

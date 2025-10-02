@@ -72,9 +72,13 @@ const totalPages = ref(1)
 const chartRef = ref<HTMLCanvasElement | null>(null)
 let chartInstance: Chart | null = null
 
-const filters = ref({
-  dateFrom: '',
-  dateTo: '',
+const filters = ref<{
+  dateFrom: string | undefined
+  dateTo: string | undefined
+  limit: number
+}>({
+  dateFrom: undefined,
+  dateTo: undefined,
   limit: 500
 })
 
