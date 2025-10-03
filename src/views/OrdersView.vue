@@ -19,6 +19,14 @@
           <option :value="500">500</option>
         </select>
       </div>
+      <div class="filter-item">
+        <label>Мин. сумма</label>
+        <input v-model.number="filters.minTotalPrice" type="number" min="0" placeholder="0" />
+      </div>
+      <div class="filter-item">
+        <label>Макс. сумма</label>
+        <input v-model.number="filters.maxTotalPrice" type="number" min="0" placeholder="100000" />
+      </div>
       <button @click="fetchData" class="btn btn--primary">Применить</button>
     </div>
 
@@ -39,7 +47,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(order, index) in orders" :key="index">
+          <tr v-for="(order, index) in filteredOrders" :key="index">
             <td>{{ order.date }}</td>
             <td>{{ order.supplier_article }}</td>
             <td>{{ order.tech_size }}</td>
@@ -59,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import { ordersService } from '@/services/ordersService'
 import type { Order } from '@/types'
@@ -76,10 +84,21 @@ const filters = ref<{
   dateFrom: string | undefined
   dateTo: string | undefined
   limit: number
+  minTotalPrice: number
+  maxTotalPrice: number
 }>({
   dateFrom: undefined,
   dateTo: undefined,
-  limit: 500
+  limit: 500,
+  minTotalPrice: 0,
+  maxTotalPrice: 100000
+})
+
+const filteredOrders = computed(() => {
+  return orders.value.filter(o => {
+    const price = parseFloat(o.total_price)
+    return price >= filters.value.minTotalPrice && price <= filters.value.maxTotalPrice
+  })
 })
 
 const fetchData = async () => {
@@ -107,8 +126,8 @@ const renderChart = () => {
   const ctx = chartRef.value.getContext('2d')
   if (!ctx) return
 
-  const labels = orders.value.map(o => o.date)
-  const prices = orders.value.map(o => parseFloat(o.total_price) || 0)
+  const labels = filteredOrders.value.map(o => o.date)
+  const prices = filteredOrders.value.map(o => parseFloat(o.total_price) || 0)
 
   chartInstance = new Chart(ctx, {
     type: 'bar',
@@ -149,3 +168,10 @@ onMounted(() => {
   fetchData()
 })
 </script>
+
+<style scoped>
+.chart-container canvas {
+  height: 300px !important;
+  width: 100% !important;
+}
+</style>

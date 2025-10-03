@@ -4,6 +4,7 @@
     <p class="mb-4 text-gray-600">
       Дата: {{ formattedToday }}
     </p>
+
     <div class="filter-group">
       <div class="filter-item">
         <label>Лимит</label>
@@ -13,11 +14,19 @@
           <option :value="500">500</option>
         </select>
       </div>
+      <div class="filter-item">
+        <label>Мин. остаток</label>
+        <input v-model.number="filters.minQuantity" type="number" min="0" placeholder="0" />
+      </div>
+      <div class="filter-item">
+        <label>Макс. остаток</label>
+        <input v-model.number="filters.maxQuantity" type="number" min="0" placeholder="1000" />
+      </div>
       <button @click="fetchData" class="btn btn--primary">Применить</button>
     </div>
 
     <div class="chart-container">
-      <h2 class="text-lg font-semibold mb-2">График: Остатки на складе (quantity)</h2>
+      <h2 class="text-lg font-semibold mb-2">График: Остатки на складе</h2>
       <canvas ref="chartRef"></canvas>
     </div>
 
@@ -33,10 +42,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(stock, index) in stocks" :key="index">
+          <tr v-for="(stock, index) in filteredStocks" :key="index">
             <td>{{ stock.date }}</td>
-            <td>{{ stock.supplier_article || '—' }}</td>
-            <td>{{ stock.tech_size || '—' }}</td>
+            <td>{{ (stock.supplier_article || '—').substring(0, 8) }}</td>
+            <td>{{ (stock.tech_size || '—').substring(0, 4) }}</td>
             <td>{{ stock.barcode || '—' }}</td>
             <td>{{ stock.quantity }}</td>
           </tr>
@@ -53,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { Chart, registerables } from 'chart.js'
 import { stocksService } from '@/services/stocksService'
 import type { Stock } from '@/types'
@@ -70,12 +79,19 @@ const today = new Date()
 const formattedToday = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`
 
 const filters = ref({
-  limit: 500
+  limit: 500,
+  minQuantity: 0,
+  maxQuantity: 1000
 })
 
+const filteredStocks = computed(() => {
+  return stocks.value.filter(s => {
+    const qty = parseInt(s.quantity, 10)
+    return qty >= filters.value.minQuantity && qty <= filters.value.maxQuantity
+  })
+})
 
 const fetchData = async () => {
-  const today = new Date()
   const dateStr = new Date().toISOString().split('T')[0]!
 
   try {
@@ -99,17 +115,17 @@ const renderChart = () => {
   const ctx = chartRef.value.getContext('2d')
   if (!ctx) return
 
-  const labels = stocks.value.map(s => {
+  const labels = filteredStocks.value.map(s => {
     const article = (s.supplier_article || 'N/A').substring(0, 8)
     const size = (s.tech_size || 'N/A').substring(0, 4)
     return `Арт: ${article} / Р: ${size}`
   })
 
-  const quantities = stocks.value.map(s => parseInt(s.quantity, 10) || 0)
+  const quantities = filteredStocks.value.map(s => parseInt(s.quantity, 10) || 0)
 
   chartInstance = new Chart(ctx, {
     type: 'bar',
-     data: {
+    data: {
       labels,
       datasets: [{
         label: 'Остаток на складе (шт)',
@@ -148,3 +164,10 @@ onMounted(() => {
   fetchData()
 })
 </script>
+
+<style scoped>
+.chart-container canvas {
+  height: 300px !important;
+  width: 100% !important;
+}
+</style>
