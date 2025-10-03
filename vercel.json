@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://autumn-cell-03cf.thelastrover.workers.dev/?path=/$1"
-    }
-  ]
-}
